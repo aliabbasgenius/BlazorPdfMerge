@@ -1,0 +1,106 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Forms
+@using PdfSharpCore.Pdf
+@using PdfSharpCore.Pdf.IO
+@using System.IO
+
+<h3>Upload and Merge PDFs</h3>
+
+<!-- File input for selecting multiple PDF files -->
+<InputFile OnChange="HandleFilesSelected" multiple accept=".pdf" />
+
+@if (selectedFiles?.Count > 0)
+{
+    <div>
+        <h4>Selected Files:</h4>
+        <ul>
+            @foreach (var file in selectedFiles)
+            {
+                <li>@file.Name</li>
+            }
+        </ul>
+        <!-- Button to trigger PDF merge -->
+        <button @onclick="MergeFiles" class="btn btn-primary">Merge PDFs</button>
+    </div>
+}
+
+@if (mergedPdfBytes != null)
+{
+    <div>
+        <h4>Merge Successful!</h4>
+        <!-- Download link for the merged PDF, using a data URL -->
+        <a href="data:application/pdf;base64,@Convert.ToBase64String(mergedPdfBytes)"
+           download="merged.pdf" class="btn btn-success">Download Merged PDF</a>
+    </div>
+}
+
+@code {
+    // List to hold the selected PDF files
+    private List<IBrowserFile> selectedFiles = new();
+    // Holds the merged PDF as a byte array for download
+    private byte[]? mergedPdfBytes;
+
+    // Place this in a service class for easier testing
+    public static byte[] MergePdfStreams(IEnumerable<Stream> pdfStreams)
+    {
+        using var outputDocument = new PdfSharpCore.Pdf.PdfDocument();
+        foreach (var stream in pdfStreams)
+        {
+            using var inputDocument = PdfSharpCore.Pdf.IO.PdfReader.Open(stream, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
+            for (int idx = 0; idx < inputDocument.PageCount; idx++)
+            {
+                outputDocument.AddPage(inputDocument.Pages[idx]);
+            }
+        }
+        using var ms = new MemoryStream();
+        outputDocument.Save(ms, false);
+        return ms.ToArray();
+    }
+    // Handles file selection from the InputFile component
+    private void HandleFilesSelected(InputFileChangeEventArgs e)
+    {
+        // Filter and store only PDF files
+        selectedFiles = e.GetMultipleFiles()
+            .Where(f => f.ContentType == "application/pdf" ||
+                        f.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        // Reset merged PDF when new files are selected
+        mergedPdfBytes = null;
+    }
+
+    // Called when the user clicks the "Merge PDFs" button
+    private async Task MergeFiles()
+    {
+        if (selectedFiles?.Count > 0)
+        {
+            // Merge the selected PDF files and store the result
+            mergedPdfBytes = await MergePdfFilesAsync(selectedFiles);
+        }
+    }
+
+    // Merges multiple PDF files into a single PDF and returns it as a byte array
+    private async Task<byte[]> MergePdfFilesAsync(IEnumerable<IBrowserFile> files)
+    {
+        using var outputDocument = new PdfDocument();
+
+        foreach (var file in files)
+        {
+            // Read into a seekable memory stream first
+            await using var sourceStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await sourceStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0; // Reset position for reading
+
+            using var inputDocument = PdfReader.Open(memoryStream, PdfDocumentOpenMode.Import);
+
+            for (int idx = 0; idx < inputDocument.PageCount; idx++)
+            {
+                outputDocument.AddPage(inputDocument.Pages[idx]);
+            }
+        }
+
+        using var resultStream = new MemoryStream();
+        outputDocument.Save(resultStream, closeStream: false);
+        return resultStream.ToArray();
+    }
+}
