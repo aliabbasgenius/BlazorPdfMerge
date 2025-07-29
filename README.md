@@ -41,9 +41,9 @@ The code was developed with the help of **GitHub Copilot**, showcasing how AI-as
 
 <img width="1920" height="869" alt="image" src="https://github.com/user-attachments/assets/ea74afc1-3c4c-48dd-a156-373f6d4a20f1" />
 
-<img width="1920" height="869" alt="image" src="https://github.com/user-attachments/assets/c0776a18-771e-4483-9e69-4f55039210c2" />
-
 <img width="1920" height="915" alt="image" src="https://github.com/user-attachments/assets/67fb1901-142e-4864-a65b-b9710f5bc9f9" />
+
+<img width="1528" height="963" alt="image" src="https://github.com/user-attachments/assets/bd968d5c-659d-4719-af0a-3b300725f134" />
 
 ---
 
